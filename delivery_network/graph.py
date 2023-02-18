@@ -55,7 +55,9 @@ class Graph:
         dist: numeric (int or float), optional
             Distance between node1 and node2 on the edge. Default is 1.
         """
-        raise NotImplementedError
+        self.graph[node1] += [(node2, power_min, dist)]
+        self.graph[node2] += [(node1, power_min, dist)]
+        
     
 
     def get_path_with_power(self, src, dest, power):
@@ -100,4 +102,14 @@ def graph_from_file(filename):
     G: Graph
         An object of the class Graph with the graph from file_name.
     """
-    raise NotImplementedError
+    lines = []
+    with open(filename, encoding="utf-8") as file :
+        for line in file :
+            line = line.rsplit().split()
+            lines.append(line)
+    n,m = lines[0][0],lines[0][1]
+    nodes = [k for k in range(n)]
+    graph = Graph(nodes)
+    for i in range(1,m) :
+        graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
+    return(graph)
