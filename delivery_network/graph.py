@@ -105,11 +105,16 @@ def graph_from_file(filename):
     lines = []
     with open(filename, encoding="utf-8") as file :
         for line in file :
-            line = line.rsplit().split()
-            lines.append(line)
+            line = line.rsplit()
+            print(line)
+            lines.append(list(map(int,line)))
+        print(lines)
     n,m = lines[0][0],lines[0][1]
-    nodes = [k for k in range(n)]
+    nodes = [k for k in range(1,n+1)]
     graph = Graph(nodes)
-    for i in range(1,m) :
+    print(graph)
+    for i in range(1,m+1) :
         graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
+        print(graph)
+    graph.nb_edges = m
     return(graph)
