@@ -58,14 +58,46 @@ class Graph:
         self.graph[node1] += [(node2, power_min, dist)]
         self.graph[node2] += [(node1, power_min, dist)]
         
-    
+    def path(self,node1,node2):
+        visited = []
+        visited.append(node1)
+        #print(f"visited in exp {visited}")
+        neighbors = [self.graph[node][i][0] for i in range(len(self.graph[node]))]
+        #print(f"liste des neighbors de {node} = {neighbors}")
+        for neighbor in neighbors :
+            #print(f"neighbor du node {node} = {neighbor}")
+            if neighbor not in visited :
+                exploration(self,neighbor)
 
     def get_path_with_power(self, src, dest, power):
-        raise NotImplementedError
+        raise NotImplementedError()
+        #for component in connected_components_set(self) :
+           # if {src,dest} & component == {src,dest} :
     
-
     def connected_components(self):
-        raise NotImplementedError
+        visited = []
+        components = []
+        def exploration(self,node):
+            visited.append(node)
+            #print(f"visited in exp {visited}")
+            neighbors = [self.graph[node][i][0] for i in range(len(self.graph[node]))]
+            #print(f"liste des neighbors de {node} = {neighbors}")
+            for neighbor in neighbors :
+                #print(f"neighbor du node {node} = {neighbor}")
+                if neighbor not in visited :
+                    exploration(self,neighbor) 
+        
+        for node in self.nodes :
+            #print(f"node ={node}")
+            #print(f"visited = {visited}")
+            if node not in visited :
+                visited = []
+                exploration(self, node)
+                components.append(visited)
+                #print(f"MAJ components {components}")
+        return components
+                
+        
 
 
     def connected_components_set(self):
@@ -106,15 +138,14 @@ def graph_from_file(filename):
     with open(filename, encoding="utf-8") as file :
         for line in file :
             line = line.rsplit()
-            print(line)
             lines.append(list(map(int,line)))
-        print(lines)
     n,m = lines[0][0],lines[0][1]
     nodes = [k for k in range(1,n+1)]
     graph = Graph(nodes)
-    print(graph)
-    for i in range(1,m+1) :
-        graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
-        print(graph)
     graph.nb_edges = m
+    for i in range(1,m+1) :
+        if len(lines[i]) == 4:
+            graph.add_edge(lines[i][0],lines[i][1],lines[i][2], lines[i][3])  
+        else :
+            graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
     return(graph)
