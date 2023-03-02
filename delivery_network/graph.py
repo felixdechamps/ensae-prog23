@@ -57,7 +57,8 @@ class Graph:
         """
         self.graph[node1] += [(node2, power_min, dist)]
         self.graph[node2] += [(node1, power_min, dist)]
-        
+    def remove_edge(self,node1,node2) :
+        self.graph[node1] =   
     def path(self,node1,node2):
         visited = []
         visited.append(node1)
@@ -69,10 +70,7 @@ class Graph:
             if neighbor not in visited :
                 exploration(self,neighbor)
 
-    def get_path_with_power(self, src, dest, power):
-        raise NotImplementedError()
-        #for component in connected_components_set(self) :
-           # if {src,dest} & component == {src,dest} :
+    
     
     def connected_components(self):
         visited = []
@@ -97,15 +95,39 @@ class Graph:
                 #print(f"MAJ components {components}")
         return components
                 
-        
-
-
     def connected_components_set(self):
         """
         The result should be a set of frozensets (one per component), 
         For instance, for network01.in: {frozenset({1, 2, 3}), frozenset({4, 5, 6, 7})}
         """
         return set(map(frozenset, self.connected_components()))
+    
+    def get_path_with_power(self, src, dest, power):
+        """for component in self.connected_components_set() :
+            if {src,dest} & component == {src,dest} :
+                visited = []
+                def exploration(self,node):
+                    visited.append(node)
+                    neighbors = [self.graph[node][i][0] for i in range(len(self.graph[node]))]
+                    if dest in neighbors :
+                        visited.append(dest)
+                        return(visited)
+                    if visited[-1] != dest :
+                        for neighbor in neighbors :
+                            if neighbor not in visited :
+                                print(f"visited = {visited}")
+                                exploration(self,neighbor)
+                exploration(self, src)
+
+            return None"""
+        graph_aux = self.graph 
+        for node in self.nodes :
+            for el in graph_aux.[node] :
+                if el[1] > power :
+                    graph_aux[node].remove(el)
+                    
+        
+
     
     def min_power(self, src, dest):
         """
