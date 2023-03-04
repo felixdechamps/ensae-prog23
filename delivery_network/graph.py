@@ -1,3 +1,4 @@
+import numpy as np
 class Graph:
     """
     A class representing graphs as adjacency lists and implementing various algorithms on the graphs. Graphs in the class are not oriented. 
@@ -57,8 +58,7 @@ class Graph:
         """
         self.graph[node1] += [(node2, power_min, dist)]
         self.graph[node2] += [(node1, power_min, dist)]
-    def remove_edge(self,node1,node2) :
-        self.graph[node1] =   
+      
     def path(self,node1,node2):
         visited = []
         visited.append(node1)
@@ -70,28 +70,31 @@ class Graph:
             if neighbor not in visited :
                 exploration(self,neighbor)
 
-    
-    
-    def connected_components(self):
-        visited = []
-        components = []
-        def exploration(self,node):
-            visited.append(node)
+    def exploration(self,node,visited):
+            visited[node-1] = 1
             #print(f"visited in exp {visited}")
             neighbors = [self.graph[node][i][0] for i in range(len(self.graph[node]))]
             #print(f"liste des neighbors de {node} = {neighbors}")
             for neighbor in neighbors :
                 #print(f"neighbor du node {node} = {neighbor}")
-                if neighbor not in visited :
-                    exploration(self,neighbor) 
-        
+                if visited[neighbor-1]==0 :
+                    self.exploration(neighbor,visited)
+    
+    def connected_components(self):
+        visited = [0]*self.nb_nodes
+        components = []
+         
         for node in self.nodes :
             #print(f"node ={node}")
             #print(f"visited = {visited}")
-            if node not in visited :
-                visited = []
-                exploration(self, node)
-                components.append(visited)
+            if visited[node-1] ==0 :
+                visited = [0]*self.nb_nodes
+                self.exploration(node,visited)
+                component = []
+                for k in range(self.nb_nodes):
+                    if visited[k]==1 :
+                        component.append(k+1) 
+                components.append(component)
                 #print(f"MAJ components {components}")
         return components
                 
@@ -102,33 +105,71 @@ class Graph:
         """
         return set(map(frozenset, self.connected_components()))
     
-    def get_path_with_power(self, src, dest, power):
-        """for component in self.connected_components_set() :
-            if {src,dest} & component == {src,dest} :
-                visited = []
-                def exploration(self,node):
-                    visited.append(node)
-                    neighbors = [self.graph[node][i][0] for i in range(len(self.graph[node]))]
-                    if dest in neighbors :
-                        visited.append(dest)
-                        return(visited)
-                    if visited[-1] != dest :
-                        for neighbor in neighbors :
-                            if neighbor not in visited :
-                                print(f"visited = {visited}")
-                                exploration(self,neighbor)
-                exploration(self, src)
-
-            return None"""
-        graph_aux = self.graph 
-        for node in self.nodes :
-            for el in graph_aux.[node] :
+    def graph_aux(self,power):
+        res=self
+        removed_edges=0
+        for node in res.nodes :
+            edges_list = res.graph[node][:]
+            for el in edges_list :
                 if el[1] > power :
-                    graph_aux[node].remove(el)
-                    
+                    res.graph[node].remove(el)
+                    removed_edges+=1/2
+        res.nb_edges=res.nb_edges-int(removed_edges)
+        return res
+    
+    def BFS(self,node):
+        queue=[node]
+        visited = np.array([0]*self.nb_nodes)
+        visited[node-1] = 1
+        ways = [[node]]
+        while len(queue) > 0:
+            print(f"queue begin = {queue}")
+            neighbors = np.array([self.graph[queue[0]][i][0] for i in range(len(self.graph[queue[0]]))])
+            print(f"neighbors={neighbors}")
+            ways_new = []
+            if all(visited[neighbors-1])==1:
+                ways_new = ways
+            
+            for neighbor in neighbors:
+                if visited[neighbor-1]==0 :
+                    queue.append(neighbor)
+                    visited[neighbor-1]=1
+                    for way in ways :
+                        if way[-1]==queue[0]:
+                            ways_new.append(way+[neighbor])
+                        elif way not in ways_new:
+                            ways_new.append(way)
+            ways=ways_new
+            print(f"ways={ways}")
+            del queue[0]
+            print(f"queue end ={queue}")
+        return ways
+            
+
         
 
-    
+
+
+
+    def get_path_with_power(self, src, dest, power):
+        graph_aux=self.graph_aux(power)
+        for component in graph_aux.connected_components_set() :
+            if {src,dest} & component == {src,dest} :
+                ways = self.BFS(src)
+                #print(f"ways={ways}")
+                ways_to_dest=[]
+                for way in ways:
+                    #print(f"way ={way}")
+                    if dest in way:
+                        while way[-1] != dest:
+                            del way[-1]
+                        ways_to_dest.append(way)
+                #print(f"ways_to_dest ={ways_to_dest}")    
+                ways_lengths = [len(way) for way in ways_to_dest]
+                #print(f"ways_lengths={ways_lengths}")
+                return ways_to_dest[np.argmin(ways_lengths)]  
+        return None
+
     def min_power(self, src, dest):
         """
         Should return path, min_power. 
