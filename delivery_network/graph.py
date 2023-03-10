@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 import graphviz
-from graphviz import Digraph
+from graphviz import Graph
 class Graph:
     """
     A class representing graphs as adjacency lists and implementing various algorithms on the graphs. Graphs in the class are not oriented. 
@@ -180,7 +180,7 @@ class Graph:
                             del way[-1]
                         ways_to_dest.append(way)
                 return ways_to_dest
-
+        
     def min_power(self, src, dest):
         #on commence par regarder quelles sont les puissances possibles
         #et on les range par ordre croissant. 
@@ -190,17 +190,20 @@ class Graph:
                 if edge[1] not in power_possible:
                     power_possible.append(edge[1])            
         power_possible = sorted(power_possible)
-        power_min = power_possible[-1]
+        #print(f"power possible = {power_possible}")
         res = []
         #on recupere la liste des chemins qui menent de src a dest. 
         ways = self.get_paths(src,dest)
+        #print(f"ways ={ways}")
         for way in ways :
+            #print(f"way ={way}")
             for i in range(len(power_possible)):
+                #print(f"i = {i}")
                 if self.get_path_with_power(src, dest,power_possible[i])==None:
                     i+=1
                 else :
-                    if power_possible[i]<power_min:
                         res = [way, power_possible[i]]
+                        #print(f"res = {res}")
                         break
         return res
             
@@ -212,18 +215,16 @@ class Graph:
     def min_power_s2(self, src, dest):
         power_possible = []
         for node in self.nodes :
-            for edge in self.graph[node]:
-                if edge[1] not in power_possible:
+            for edge in self.graph[node] :
+                if edge[1] not in power_possible :
                     power_possible.append(edge[1])            
         power_possible = sorted(power_possible)
-        power_min = power_possible[-1]
         res = []
         way = self.get_paths(src,dest)
         for i in range(len(power_possible)):
             if self.get_path_with_power(src, dest,power_possible[i])==None:
                 i+=1
             else :
-                if power_possible[i]<power_min:
                     res = [way, power_possible[i]]
                     break
         return res
@@ -266,18 +267,19 @@ def graph_from_file(filename):
             graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
     return(graph)
 
-def visual_rpz(graph):
-    rpz = graphviz.Digraph(comment=f"Visual display of {graph}", engine='neato')
-    for node in graph.nodes :
-        rpz.node(str(node))
-        print(f"edges to add ={[f'{node}{el[0]}' for el in graph.graph[node]]}")
-    for node in graph.nodes :
-        neighbors = [el[0] for el in graph.graph[node]]
-        for neighbor in neighbors :
-            rpz.edge(f'{neighbor}',f'{node}')
+def visual_rpz(g,comment = "Graphe", view = True):
+    rpz = graphviz.Graph(comment = comment, engine='neato')
+    for node in g.nodes :
+        rpz.node(f"{node}", str(node))
+        #print(f"edges to add ={[f'{node}{el[0]}' for el in graph.graph[node]]}")
+    for source, destinations in g.graph.items() :
+        for destination, power, dist in destinations :
+            if source < destination :
+                rpz.edge(str(source), str(destination), label = f"{power}, {dist}")
+    rpz.render(filename = f"doctest-output/{comment}.gv", cleanup = True, view = view )
 
         #rpz.edges([f"{node}{el[0]}" for el in graph.graph[node]])
-    return rpz
+
 
 def roads_from_file(filename) :
     lines = []
@@ -287,11 +289,7 @@ def roads_from_file(filename) :
             lines.append(list(map(int,line)))
     nb_roads = lines[0][0]
     roads = []
-    #nodes = [k for k in range(1,n+1)]
-    #graph = Graph(nodes)
-    #graph.nb_edges = m
     for i in range(1,nb_roads+1) :
-        #if len(lines[i]) == 4:
             roads.append((lines[i][0],lines[i][1],lines[i][2])) 
     return(roads)
 
@@ -326,21 +324,21 @@ def kruskal(g):
             edge=[node]+list(el)
             if edge not in edges and node>el[0]:
                 edges.append(edge)
-            print(f"edges ={edges}")
+            #print(f"edges ={edges}")
     edges = sorted(edges, key=lambda edge : edge[2])
-    print(f"sorted edges = {edges}")
+    #print(f"sorted edges = {edges}")
     for edge in edges :
         node1,node2 = list_set[edge[0]-1],list_set[edge[1]-1]
-        print("ok")
-        print(node1.find().element,node2.find().element)
+        #print("ok")
+        #print(node1.find().element,node2.find().element)
         if node1.find()!=node2.find():
-            print("ok")
-            print(node1.element,node2.element,edge[2],edge[3])
+            #print("ok")
+            #print(node1.element,node2.element,edge[2],edge[3])
             g_mst.add_edge(node1.element, node2.element, edge[2], edge[3])
             g_mst.nb_edges+=1
             Union_Find.union(node1, node2)
-            print(node1.find().element,node2.find().element)
-        print(g_mst)
+            #print(node1.find().element,node2.find().element)
+        #print(g_mst)
     return g_mst
 
 
