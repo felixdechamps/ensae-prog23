@@ -1,4 +1,7 @@
 import numpy as np
+import copy
+import graphviz
+from graphviz import Digraph
 class Graph:
     """
     A class representing graphs as adjacency lists and implementing various algorithms on the graphs. Graphs in the class are not oriented. 
@@ -106,7 +109,7 @@ class Graph:
         return set(map(frozenset, self.connected_components()))
     
     def graph_aux(self,power):
-        res=self
+        res=copy.deepcopy(self)
         removed_edges=0
         for node in res.nodes :
             edges_list = res.graph[node][:]
@@ -123,13 +126,13 @@ class Graph:
         visited[node-1] = 1
         ways = [[node]]
         while len(queue) > 0:
-            print(f"queue begin = {queue}")
+            #print(f"queue begin = {queue}")
             neighbors = np.array([self.graph[queue[0]][i][0] for i in range(len(self.graph[queue[0]]))])
-            print(f"neighbors={neighbors}")
+            #print(f"neighbors={neighbors}")
             ways_new = []
             if all(visited[neighbors-1])==1:
                 ways_new = ways
-            
+
             for neighbor in neighbors:
                 if visited[neighbor-1]==0 :
                     queue.append(neighbor)
@@ -140,16 +143,10 @@ class Graph:
                         elif way not in ways_new:
                             ways_new.append(way)
             ways=ways_new
-            print(f"ways={ways}")
+            #print(f"ways={ways}")
             del queue[0]
-            print(f"queue end ={queue}")
+            #print(f"queue end ={queue}")
         return ways
-            
-
-        
-
-
-
 
     def get_path_with_power(self, src, dest, power):
         graph_aux=self.graph_aux(power)
@@ -170,11 +167,67 @@ class Graph:
                 return ways_to_dest[np.argmin(ways_lengths)]  
         return None
 
+    def get_paths(self,src, dest):
+        for component in self.connected_components_set() :
+            if {src,dest} & component == {src,dest} :
+                ways = self.BFS(src)
+                #print(f"ways={ways}")
+                ways_to_dest=[]
+                for way in ways:
+                    #print(f"way ={way}")
+                    if dest in way:
+                        while way[-1] != dest:
+                            del way[-1]
+                        ways_to_dest.append(way)
+                return ways_to_dest
+
     def min_power(self, src, dest):
+        #on commence par regarder quelles sont les puissances possibles
+        #et on les range par ordre croissant. 
+        power_possible = []
+        for node in self.nodes :
+            for edge in self.graph[node]:
+                if edge[1] not in power_possible:
+                    power_possible.append(edge[1])            
+        power_possible = sorted(power_possible)
+        power_min = power_possible[-1]
+        res = []
+        #on recupere la liste des chemins qui menent de src a dest. 
+        ways = self.get_paths(src,dest)
+        for way in ways :
+            for i in range(len(power_possible)):
+                if self.get_path_with_power(src, dest,power_possible[i])==None:
+                    i+=1
+                else :
+                    if power_possible[i]<power_min:
+                        res = [way, power_possible[i]]
+                        break
+        return res
+            
+
         """
         Should return path, min_power. 
         """
-        raise NotImplementedError
+    
+    def min_power_s2(self, src, dest):
+        power_possible = []
+        for node in self.nodes :
+            for edge in self.graph[node]:
+                if edge[1] not in power_possible:
+                    power_possible.append(edge[1])            
+        power_possible = sorted(power_possible)
+        power_min = power_possible[-1]
+        res = []
+        way = self.get_paths(src,dest)
+        for i in range(len(power_possible)):
+            if self.get_path_with_power(src, dest,power_possible[i])==None:
+                i+=1
+            else :
+                if power_possible[i]<power_min:
+                    res = [way, power_possible[i]]
+                    break
+        return res
+
 
 
 def graph_from_file(filename):
@@ -212,3 +265,88 @@ def graph_from_file(filename):
         else :
             graph.add_edge(lines[i][0],lines[i][1],lines[i][2])
     return(graph)
+
+def visual_rpz(graph):
+    rpz = graphviz.Digraph(comment=f"Visual display of {graph}", engine='neato')
+    for node in graph.nodes :
+        rpz.node(str(node))
+        print(f"edges to add ={[f'{node}{el[0]}' for el in graph.graph[node]]}")
+    for node in graph.nodes :
+        neighbors = [el[0] for el in graph.graph[node]]
+        for neighbor in neighbors :
+            rpz.edge(f'{neighbor}',f'{node}')
+
+        #rpz.edges([f"{node}{el[0]}" for el in graph.graph[node]])
+    return rpz
+
+def roads_from_file(filename) :
+    lines = []
+    with open(filename, encoding="utf-8") as file :
+        for line in file :
+            line = line.rsplit()
+            lines.append(list(map(int,line)))
+    nb_roads = lines[0][0]
+    roads = []
+    #nodes = [k for k in range(1,n+1)]
+    #graph = Graph(nodes)
+    #graph.nb_edges = m
+    for i in range(1,nb_roads+1) :
+        #if len(lines[i]) == 4:
+            roads.append((lines[i][0],lines[i][1],lines[i][2])) 
+    return(roads)
+
+class Union_Find :
+    def __init__(self,node):
+        self.element = node
+        self.parent = self
+        self.rank = 0
+    def find(self):
+        if self.parent == self:
+            return self
+        else :
+            return (self.parent).find()
+    @staticmethod
+    def union(node1,node2):
+        root_node1 = node1.find()
+        root_node2 = node2.find()
+        if root_node1.rank > root_node2.rank :
+            node2.parent = root_node1
+        else :
+            node1.parent = root_node2
+            if root_node1.rank == root_node2.rank :
+                root_node2.rank+=1 
+def kruskal(g):
+    g_mst = Graph(g.nodes)
+    edges =[]
+    list_set = []
+    # on recupere la liste (triee par ordre croissant de puissance) des arrêtes
+    for node in g.nodes :
+        list_set.append(Union_Find(node))
+        for el in g.graph[node] :
+            edge=[node]+list(el)
+            if edge not in edges and node>el[0]:
+                edges.append(edge)
+            print(f"edges ={edges}")
+    edges = sorted(edges, key=lambda edge : edge[2])
+    print(f"sorted edges = {edges}")
+    for edge in edges :
+        node1,node2 = list_set[edge[0]-1],list_set[edge[1]-1]
+        print("ok")
+        print(node1.find().element,node2.find().element)
+        if node1.find()!=node2.find():
+            print("ok")
+            print(node1.element,node2.element,edge[2],edge[3])
+            g_mst.add_edge(node1.element, node2.element, edge[2], edge[3])
+            g_mst.nb_edges+=1
+            Union_Find.union(node1, node2)
+            print(node1.find().element,node2.find().element)
+        print(g_mst)
+    return g_mst
+
+
+
+
+
+
+
+    
