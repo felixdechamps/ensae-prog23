@@ -10,19 +10,13 @@ data_path = "input/"
 file_name_network= "network.2.in"
 
 g = graph_from_file(data_path + file_name_network)
-#print(g)
+
 g_mst = kruskal(g)
-#print(g.min_power(9,3))
-#print(visual_rpz(g))
-#print(kruskal(g))
-#print(kruskal(g).graph)
-#question 10
-
-
+print("ok")
 file_name_roads = "routes.2.in"
 
-#print(roads_from_file(data_path + file_name_roads))
 t_start = perf_counter()
+
 for road in roads_from_file(data_path + file_name_roads) :
     g_mst.min_power(road[0], road[1])
 t_stop = perf_counter()
