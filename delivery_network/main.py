@@ -9,6 +9,7 @@ data_path = "input/"
 
 file_name_network= "network.2.in"
 
+
 g = graph_from_file(data_path + file_name_network)
 
 g_mst = kruskal(g)
