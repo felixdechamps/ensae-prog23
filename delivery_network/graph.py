@@ -32,7 +32,7 @@ class Graph:
         self.graph = dict([(n, []) for n in nodes])
         self.nb_nodes = len(nodes)
         self.nb_edges = 0
-        self.edges = []
+        self.edges = set()
         self.powers = set()
 
     def __str__(self):
@@ -100,7 +100,7 @@ class Graph:
         """
         Input : a graph
         Output : an auxiliary graph containing only the egdes 
-        with a power inferior to the argument "power
+        with a power inferior to the argument "power"
         """
         res=copy.deepcopy(self) # we make a copy of the initial graph so that it won't be modified
         removed_edges=0 #stores the number of removed edges
@@ -108,15 +108,29 @@ class Graph:
             edges_list = res.graph[node][:] #edges_list = list of the edges of the node (neigbors, power, dist)
             for el in edges_list :
                 if el[1] > power :
+                    #print(el[1], res.powers)
+                    try :
+                        res.powers.remove(el[1])
+                          
+                    except ValueError :
+                        pass
+                    try :
+                        res.edges.remove((node,el[0],el[1],el[2]))
+                          
+                    except ValueError :
+                        pass
+                    
+                    #print((node,el[0],el[1],el[2]),len(res.edges))
                     res.graph[node].remove(el) #we remove the egdes which requires to much power
                     removed_edges+=1/2
+                    
         res.nb_edges=res.nb_edges-int(removed_edges) #update of the number of edges of the auxiliary graph 
         return res
     
     def BFS(self,node):
         """Breadth-First search algorithm
         INPUT : a starting node
-        OUTPUT : a list of ways from the node in input to cover the entire graph
+        OUTPUT : a list of ways starting from the node in input to cover the entire graph
         """
         queue=[node]#initialisation of a queue
         visited = np.array([0]*self.nb_nodes)#list of the visited nodes
@@ -125,6 +139,9 @@ class Graph:
         while len(queue) > 0:
             #list of the neighbors of the queue's first element
             neighbors = np.array([self.graph[queue[0]][i][0] for i in range(len(self.graph[queue[0]]))]) 
+            if len(neighbors) == 0:
+                del queue[0]
+                continue
             ways_new = []# new list to store the ways
             if all(visited[neighbors-1])==1: #if all the neighbor's have already been visited
                 ways_new = ways
@@ -142,15 +159,15 @@ class Graph:
             del queue[0] #we update the queue by deleting the first element
             
         return ways
-
+    
     def get_path_with_power(self, src, dest, power):
         """ INPUT : a graph, une source node, a destination node and the power of the truck which wants 
             to cover the way
             OUTPUT : True and the shortest way between src and dest if it exists or None if it doesn't exists  """
         graph_aux=self.graph_aux(power) #we use an auxiliary graph where all the power superior to 'power' have been removed
         for component in graph_aux.connected_components_set() :
-            if {src,dest} & component == {src,dest} : #tests if src and dest belong to the same connected component, ie wheter a path between them exists.
-                ways = self.BFS(src)
+            if {src,dest} & component == {src,dest} : #tests if src and dest belong to the same connected component, ie if a path between them exists.
+                ways = graph_aux.BFS(src)
                 ways_to_dest=[] #we are going to select the ways leading to src among the ways starting from src
                 for way in ways:
                     if dest in way:
@@ -162,7 +179,7 @@ class Graph:
         return None
 
     def get_paths(self,src, dest):
-        """ Similar to the precedeing function, but it forget the power 
+        """ Similar to the preceding function, but it forget the power 
             and only return all the ways between src and dest"""
         for component in self.connected_components_set() :
             if {src,dest} & component == {src,dest} :
@@ -176,13 +193,14 @@ class Graph:
                 return ways_to_dest
 
     def binary_search(self,powers,src,dest) :
-        list_powers = sorted(list(powers))
+        list_powers = powers
         n = len(list_powers)
-        inf = 0
         sup = n
         middle = n//2
+        if len(list_powers)==1:
+            return list_powers[0]
         if self.get_path_with_power(src, dest,list_powers[middle]) == None :
-            return self.binary_search(list_powers[middle:],src,dest)
+            return self.binary_search(list_powers[+1:],src,dest)
         else :
             if self.get_path_with_power(src, dest,list_powers[middle-1])==None :
                 return list_powers[middle]
@@ -190,52 +208,47 @@ class Graph:
                 return list_powers[middle-1] 
             return self.binary_search(list_powers[:middle+1],src,dest)
 
-
+    
     def min_power(self, src, dest):
         """INPUT : Source and destination of the way
-            OUTPUT : path and min power to go through that path """
-        #on commence par regarder quelles sont les puissances possibles
-        #et on les range par ordre croissant. 
-        """
-        power_possible = []
-        for node in self.nodes :
-            for edge in self.graph[node]:
-                if edge[1] not in power_possible:
-                    power_possible.append(edge[1])            
-        power_possible = sorted(power_possible)
-        """
-        
-        res = []
-        #on recupere la liste des chemins qui menent de src a dest. 
-        ways = self.get_paths(src,dest)
-        power_min = max(self.powers)
-        list_powers = sorted(self.powers)
-        for way in ways :
-            if self.binary_search(list_powers,src,dest)<=power_min :
-                power_min = self.binary_search(list_powers,src,dest)
-                res = [way, power_min]
-        return res
-            
+            OUTPUT : path and min power to go through that path"""
+        list_powers = self.powers
+        power_min = self.binary_search(list_powers, src, dest)
+        return [power_min, self.get_path_with_power(src,dest,power_min)]   
+    
 
         """
         Should return path, min_power. 
         """
-    def min_power_s2(self, src, dest):
-        power_possible = []
-        for node in self.nodes :
-            for edge in self.graph[node] :
-                if edge[1] not in power_possible :
-                    power_possible.append(edge[1])            
-        power_possible = sorted(power_possible)
-        res = []
-        way = self.get_paths(src,dest)
-        for i in range(len(power_possible)):
-            if self.get_path_with_power(src, dest,power_possible[i])==None:
-                i+=1
-            else :
-                    res = [way, power_possible[i]]
-                    break
-        return res
+    def power_between_nodes(self):
+        n = self.nb_nodes
+        res = np.zeros((n,n))
+        for edge in self.edges :
+            res[edge[0]-1][edge[1]-1] = edge[2]
+            res[edge[1]-1][edge[0]-1] = edge[2]
+        return np.array(res, dtype=int)
+    
+    def min_power_s2(self, src, dest,uf):
+        power = set()
+        way = [src,dest]
+        L = len(way)
+        P = self.power_between_nodes()
+        print(f"uf.parent[src-1] = {uf.parent[src-1]} et uf.parent[dest-1] = {uf.parent[dest-1]}")
+        if uf.parent[src-1]==uf.parent[dest-1]:
+                way.insert(L//2, uf.parent[src-1])
+                power.add(P[src-1][uf.parent[src-1]])
+                power.add(P[dest-1][uf.parent[dest-1]])
+                return [way, min(power)]
+        else :
+            power.add(P[src-1][uf.parent[src-1]])
+            power.add(P[dest-1][uf.parent[dest-1]])
+            way.insert(L//2, uf.parent[src-1])
+            way.insert((L+1)//2, uf.parent[dest-1])
+            return self.min_power_s2(uf.parent[src-1],uf.parent[dest-1])
+        
+
+
+    
 
 
 
@@ -271,12 +284,14 @@ def graph_from_file(filename):
     for i in range(1,m+1) : # add the edges to the graph, checking if there is a given distance or not
         if len(lines[i]) == 4:
             graph.add_edge(lines[i][0],lines[i][1],lines[i][2], lines[i][3])
-            graph.edges.append((lines[i][0],lines[i][1],lines[i][2], lines[i][3]))
+            graph.edges.add((lines[i][0],lines[i][1],lines[i][2], lines[i][3]))
             graph.powers.add(lines[i][2])
         else :
             graph.add_edge(lines[i][0],lines[i][1],lines[i][2],1)
-            graph.edges.append((lines[i][0],lines[i][1],lines[i][2],1))
+            graph.edges.add((lines[i][0],lines[i][1],lines[i][2],1))
             graph.powers.add(lines[i][2])
+    graph.powers = sorted(graph.powers)
+    graph.edges = list(graph.edges)
     return(graph)
 
 def visual_rpz(g,comment = "Graphe", view = True):
@@ -307,59 +322,52 @@ def roads_from_file(filename) :
             roads.append((lines[i][0],lines[i][1],lines[i][2])) 
     return(roads)
 
-class Union_Find :
-    """ class creating the Union-Find data structure"""
-    def __init__(self,node):
-        """ Equivalent of the MakeSet function, create a set with 
-            a single element pointing on itself, with rank 0"""
-        self.element = node
-        self.parent = self
-        self.rank = 0
-    def find(self):
-        """ INPUT : an union-find data
-            OUTPUT : the root of the union-find data in the input"""
-        if self.parent == self:
-            return self
+
+class UnionFind:
+    def __init__(self, n):
+        self.parent = [i for i in range(n+1)]
+        self.root = [i for i in range(n+1)]
+        self.rank = [0] * (n+1)
+    def __repr__(self):
+        return f"parent ={self.parent} \n rank = {self.rank} \n root = {self.root}"
+    def find(self, x):
+        if self.parent[x] == x:
+            return x
+        self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    
+    def union(self, x, y):
+        rx, ry = self.find(x), self.find(y)
+        if rx == ry:
+            return
+        if self.rank[rx] < self.rank[ry]:
+
+            self.parent[rx] = ry
+            #self.rank[y] += self.rank[rx]
         else :
-            return (self.parent).find()
-    @staticmethod
-    def union(node1,node2):
-        """ INPUT : two elements with an union-find data type
-            OUTPUT : None, but it "joins" the trees containing 
-                     node1 and node2 by updating the parents and rank """
-        root_node1 = node1.find()
-        root_node2 = node2.find()
-        if root_node1.rank > root_node2.rank :
-            node2.parent = root_node1
-        else :
-            node1.parent = root_node2
-            if root_node1.rank == root_node2.rank :
-                root_node2.rank+=1 
+            self.parent[ry] = rx
+            #self.rank[x] += self.rank[ry]
+            if self.rank[rx] == self.rank[ry]:
+                self.rank[rx] += 1
+
 def kruskal(g):
-    """INPUT :  a graph g
-       OUTPUT : a graph g_mst with correspond to the minimal spannig tree of the graph g"""
+    n = g.nb_nodes
+    uf = UnionFind(n)
     g_mst = Graph(g.nodes)
-    edges =[]
-    list_set = [] # list_set will contain the union-find version of the graph
-    # we get the list in the increasing order of the power of the different edges
-    for node in g.nodes :
-        list_set.append(Union_Find(node))
-        """
-        for el in g.graph[node] :
-            edge=[node]+list(el) # the edges as the format [node1,node2,power,dist]
-            if edge not in edges and node>el[0]:
-                edges.append(edge)
-                """
-    #edges = sorted(edges, key=lambda edge : edge[2])
-    for edge in g.edges :
-        node1,node2 = list_set[edge[0]-1],list_set[edge[1]-1]
-        if node1.find()!=node2.find(): # if the roots of the nodes aren't the same, we add the edge to g_mst
-            g_mst.add_edge(node1.element, node2.element, edge[2], edge[3])
+    edges = sorted(g.edges, key=lambda edge : edge[2])
+    for edge in edges :
+        node1,node2 = edge[0],edge[1]
+        if uf.find(node1)!=uf.find(node2): # if the roots of the nodes aren't the same, we add the edge to g_mst
+            g_mst.add_edge(edge[0], edge[1], edge[2], edge[3])
             g_mst.nb_edges+=1
             g_mst.powers.add(edge[2])
-            g_mst.edges.append(edge)
-            Union_Find.union(node1, node2) # the union process prevents the formation of a circle in the structure of g_mst
+            g_mst.edges.add(edge)
+            uf.union(node1, node2) # the union process prevents the formation of a circle in the structure of g_mst
+            print(uf)
+    g_mst.powers = sorted(g_mst.powers)
+    g_mst.edges = list(g_mst.edges)
     return g_mst
+
 
 
 
